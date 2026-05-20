@@ -7,10 +7,12 @@ Tkinter GUI.
 - [x] Plan out architecture
 - [x] Buy the cables: 2 USB/RS-232 converters + null modem cable (RS-232, 1-2 m)
 - [x] Start the architecture skeleton
-- [ ] Create simple GUI
+- [x] Create simple GUI
 - [ ] Implement basic PySerial to test out the cables or use com0com for no cable testing
 - [ ] Task 1:
-    - [ ] COM port setup for comm
+    - [x] COM port setup for comm
+    - [ ] Save all values
+    - [ ] Check setup input
     - [ ] Transmitting a string of characters
     - [ ] Receiving a string of characters
     - [ ] Performing a two stage transaction - optional
