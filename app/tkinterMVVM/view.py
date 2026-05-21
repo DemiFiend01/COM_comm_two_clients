@@ -44,12 +44,7 @@ class TkinterView:
     
     def COM_config_screen(self) -> tk.Tk:
         self.clear_screen(self.window)
-        # COM port selection (combo box)
-        # bit rate (can input number in a range)
-        # protocol data (combo box)
-        # data flow control (radio buttons or combo box)
-        # terminator setting (combo box + optional custom)
-        # callbacks to viewmodel
+
         self.COM_frame = tk.Frame (
             self.window, bg=self.bg_colour
         )
@@ -68,7 +63,6 @@ class TkinterView:
         self.COM_port_combobox.pack(side="left", padx=5)
         self.refresh_button.pack(side="left", padx=5)
 
-        
         self.bitrate_frame = tk.Frame( self.window, bg=self.bg_colour)
         bitrate_label = tk.Label(
             self.bitrate_frame, text="Bitrate (from 150 bits/s to 115 kb/s):", bg=self.bg_colour
@@ -98,6 +92,9 @@ class TkinterView:
         )
         self.PDU_bits = tk.IntVar(value=7)
         self.PDU_stop_bits = tk.IntVar(value=1)
+        PDU_bits_label = tk.Label(
+            self.PDU_frame, text="Number of bits in a data field:", bg=self.bg_colour
+        )
         self.PDU_bits_7 = tk.Radiobutton (
             self.PDU_frame, text="7 bits data field", variable=self.PDU_bits, value=7, bg=self.bg_colour
         )
@@ -105,7 +102,7 @@ class TkinterView:
             self.PDU_frame, text="8 bits data field", variable=self.PDU_bits, value=8, bg=self.bg_colour
         ) 
         self.PDU_combobox = ttk.Combobox (
-            self.PDU_frame, values=["Even parity","Odd parity","None parity"]
+            self.PDU_frame, values=["Even parity","Odd parity","None parity"], state="readonly"
         )
         self.PDU_stop_bit_1 = tk.Radiobutton (
             self.PDU_frame, text="1 stop bit", variable=self.PDU_stop_bits, value=1, bg=self.bg_colour
@@ -115,6 +112,7 @@ class TkinterView:
         )
 
         PDU_label.pack(side="top", padx=5)
+        PDU_bits_label.pack(padx=5)
         self.PDU_bits_7.pack(side="left",padx=5)
         self.PDU_bits_8.pack(side="left",padx=5)
         self.PDU_combobox.pack(side="right",padx=5)
@@ -130,7 +128,8 @@ class TkinterView:
         )
         self.Data_flow_control = ttk.Combobox (
             self.Data_flow_frame, 
-            values=["None","DTR/DSR handshake","RTS/CTS handshake","XON/XOFF protocol"]
+            values=["None","DTR/DSR handshake","RTS/CTS handshake","XON/XOFF protocol"],
+            state="readonly"
         )
         Data_flow_label.pack(side="left", padx=5)
         self.Data_flow_control.pack(side="right", padx=5)
@@ -143,7 +142,7 @@ class TkinterView:
             self.terminator_frame, text="Terminator settings, insert value if custom:", bg=self.bg_colour
         )
         self.terminator_choice = ttk.Combobox (
-            self.terminator_frame, values=["None","CR","LF","CR-LF","Other - insert"]
+            self.terminator_frame, values=["None","CR","LF","CR-LF"]
         )
         terminator_label.pack(padx=5)
         self.terminator_choice.pack(padx=10)
@@ -153,19 +152,79 @@ class TkinterView:
         )
         continue_button.pack()
 
-    def show_error(self, text: str):
-        error_label = tk.Label (
-            self.window, text= text, bg=self.bg_colour, fg="red"
+        self.error_label = tk.Label (
+            self.window, text= "", bg=self.bg_colour, fg="red"
         )
-        error_label.pack()
+        self.error_label.pack()
 
+    def show_error(self, text: str):
+        self.error_label.config(text=text)
+        
     def COM_verify_inputs(self):
-        #save all values somehow
-        self.COM_port = self.COM_port_combobox.get().strip()
-        if not self.COM_port:
+        COM_values = [
+            ["COM_port",self.COM_port_combobox.get().strip()],
+            ["bitrate_value",self.bitrate_spinbox.get().strip()],
+            ["bitrate_unit", self.bitrate_unit.get().strip()],
+            ["PDU_bits", self.PDU_bits.get()],
+            ["PDU_stop", self.PDU_stop_bits.get()],
+            ["PDU_parity", self.PDU_combobox.get().strip()],
+            ["Data_flow_control", self.Data_flow_control.get().strip()],
+            ["Terminator", self.terminator_choice.get().strip()]
+        ]
+        
+        COM_values_map = dict(COM_values)
+
+        print(COM_values_map)
+        if not COM_values_map["COM_port"]:
             self.show_error("No port has been selected")
             return
-        #Add for all
+
+        if not COM_values_map["bitrate_unit"]:
+            self.show_error("No bitrate unit has been selected")
+            return
+        
+        if COM_values_map["bitrate_value"]:
+            if COM_values_map["bitrate_value"].isdigit():
+                if COM_values_map["bitrate_unit"] == "bit":
+                    if int(COM_values_map["bitrate_value"]) < 150 or int(COM_values_map["bitrate_value"]) > 115000:
+                        self.show_error("Wrong bitrate value")
+                        return
+                else:
+                    if int(COM_values_map["bitrate_value"]) > 115:
+                        self.show_error("Bitrate value is too great")
+                        return
+            else:
+                self.show_error("Bitrate has to be a number")
+                return
+        else:
+            self.show_error("No bitrate has been inputted")
+            return
+        
+        if not COM_values_map["PDU_bits"]:
+            self.show_error("No PDU bits chosen")
+            return
+        
+        if not COM_values_map["PDU_stop"]:
+            self.show_error("No stop bits chosen")
+            return
+        
+        if not COM_values_map["PDU_parity"]:
+            self.show_error("No PDU parity option has been selected")
+            return
+        
+        if not COM_values_map["Data_flow_control"]:
+            self.show_error("No data flow control option has been selected")
+            return
+        
+        if COM_values_map["Terminator"]:
+            if not COM_values_map["Terminator"] in ["None","CR","LF","CR-LF"]:
+                if len(COM_values_map["Terminator"]) > 2:
+                    self.show_error("Terminator is too long (2 chars max)")
+                    return
+        else:
+            self.show_error("No terminator has been selected")
+            return
+
         self.switch_display(new_display=self.COM_communication_screen)
 
     def COM_communication_screen(self):

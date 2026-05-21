@@ -11,8 +11,8 @@ Tkinter GUI.
 - [ ] Implement basic PySerial to test out the cables or use com0com for no cable testing
 - [ ] Task 1:
     - [x] COM port setup for comm
-    - [ ] Save all values
-    - [ ] Check setup input
+    - [x] Save all values
+    - [x] Check setup input
     - [ ] Transmitting a string of characters
     - [ ] Receiving a string of characters
     - [ ] Performing a two stage transaction - optional
