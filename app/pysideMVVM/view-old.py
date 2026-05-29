@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk as ttk
-from tkinterMVVM.viewmodel import TkinterViewModel
+from pysideMVVM.viewmodel import PysideViewModel
 
 class TkinterView:
-    def __init__(self, window: tk.Tk, viewmodel: TkinterViewModel):
+    def __init__(self, window: tk.Tk, viewmodel: PysideViewModel):
         self.window = window
         self.viewmodel = viewmodel
         self.running = True
@@ -171,26 +171,23 @@ class TkinterView:
             ["Data_flow_control", self.Data_flow_control.get().strip()],
             ["Terminator", self.terminator_choice.get().strip()]
         ]
-        
-        COM_values_map = dict(COM_values)
-
-        print(COM_values_map)
-        if not COM_values_map["COM_port"]:
+        COM_values_dict = dict(COM_values)
+        if not COM_values_dict["COM_port"]:
             self.show_error("No port has been selected")
             return
 
-        if not COM_values_map["bitrate_unit"]:
+        if not COM_values_dict["bitrate_unit"]:
             self.show_error("No bitrate unit has been selected")
             return
         
-        if COM_values_map["bitrate_value"]:
-            if COM_values_map["bitrate_value"].isdigit():
-                if COM_values_map["bitrate_unit"] == "bit":
-                    if int(COM_values_map["bitrate_value"]) < 150 or int(COM_values_map["bitrate_value"]) > 115000:
+        if COM_values_dict["bitrate_value"]:
+            if COM_values_dict["bitrate_value"].isdigit():
+                if COM_values_dict["bitrate_unit"] == "bit":
+                    if int(COM_values_dict["bitrate_value"]) < 150 or int(COM_values_dict["bitrate_value"]) > 115000:
                         self.show_error("Wrong bitrate value")
                         return
                 else:
-                    if int(COM_values_map["bitrate_value"]) > 115:
+                    if int(COM_values_dict["bitrate_value"]) > 115:
                         self.show_error("Bitrate value is too great")
                         return
             else:
@@ -200,37 +197,82 @@ class TkinterView:
             self.show_error("No bitrate has been inputted")
             return
         
-        if not COM_values_map["PDU_bits"]:
+        if not COM_values_dict["PDU_bits"]:
             self.show_error("No PDU bits chosen")
             return
         
-        if not COM_values_map["PDU_stop"]:
+        if not COM_values_dict["PDU_stop"]:
             self.show_error("No stop bits chosen")
             return
         
-        if not COM_values_map["PDU_parity"]:
+        if not COM_values_dict["PDU_parity"]:
             self.show_error("No PDU parity option has been selected")
             return
         
-        if not COM_values_map["Data_flow_control"]:
+        if not COM_values_dict["Data_flow_control"]:
             self.show_error("No data flow control option has been selected")
             return
         
-        if COM_values_map["Terminator"]:
-            if not COM_values_map["Terminator"] in ["None","CR","LF","CR-LF"]:
-                if len(COM_values_map["Terminator"]) > 2:
+        if COM_values_dict["Terminator"]:
+            if not COM_values_dict["Terminator"] in ["None","CR","LF","CR-LF"]:
+                if len(COM_values_dict["Terminator"]) > 2:
                     self.show_error("Terminator is too long (2 chars max)")
                     return
         else:
             self.show_error("No terminator has been selected")
             return
 
+        self.viewmodel.save_COM_config(COM_values_dict)
         self.switch_display(new_display=self.COM_communication_screen)
 
     def COM_communication_screen(self):
         self.clear_screen(self.window)
 
-        go_back_button = tk.Button(
-            self.window, text="Go back", bg=self.bg_colour, command=lambda:self.switch_display(self.COM_config_screen)
+        self.comm_frame = tk.Frame(
+            self.window, bg=self.bg_colour
         )
-        go_back_button.pack(padx=10)
+        self.comm_frame.pack(pady=5)
+        self.trans_frame = tk.Frame(
+            self.comm_frame, bg=self.bg_colour
+        )
+        frame_seperator = ttk.Separator(
+            self.comm_frame, orient="vertical"
+        )
+        self.receive_frame = tk.Frame(
+            self.comm_frame, bg=self.bg_colour
+        )
+        self.trans_frame.pack(side="left",padx = 10)
+        frame_seperator.pack(side="left", fill="y", padx=15)
+        self.receive_frame.pack(side="left",padx=10)
+
+        trans_label = tk.Label(
+            self.trans_frame, text="Transmission window in HEX", bg=self.bg_colour
+        )
+        self.trans_window = tk.Text (
+            self.trans_frame, width = 30, height=20
+        )
+        trans_label.pack(side="top")
+        self.trans_window.pack(padx=10)
+        
+        receive_label = tk.Label(
+            self.receive_frame, text="Receive window in HEX", bg=self.bg_colour
+        )
+        self.receive_window = tk.Text(
+            self.receive_frame, width = 30, height=20, state="disabled"
+        )
+        receive_label.pack(side="top")
+        self.receive_window.pack()
+
+        self.buttons_frame = tk.Frame(
+            self.window, bg=self.bg_colour
+        )
+        self.buttons_frame.pack(pady=10)
+        go_back_button = tk.Button(
+            self.buttons_frame, text="Go back", bg=self.bg_colour, command=lambda:self.switch_display(self.COM_config_screen)
+        )
+        go_back_button.pack(side="left",padx=30)
+
+        send_button = tk.Button(
+            self.buttons_frame, text="Send", bg=self.bg_colour, command=lambda:self.viewmodel.send_COM_message(self.trans_window.get())
+        )
+        send_button.pack(side="right",padx=30)
