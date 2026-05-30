@@ -11,6 +11,9 @@ class PysideViewModel:
 
     def save_COM_config(self, COM_config: dict):
         self.model.set_COM_config(COM_config)
+    
+    def get_COM_config(self):
+        return self.model.get_COM_config()
 
     def send_COM_message(self, text):
         self.model.send_COM_message(text)

@@ -7,11 +7,13 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class ViewCOMConfig(QWidget):
-    def __init__(self, viewmodel: PysideViewModel, switch_display):
+    def __init__(self, viewmodel: PysideViewModel, switch_display, saved_config = None):
         super().__init__()
         self.viewmodel = viewmodel
         self.switch_display = switch_display
         self._build()
+        if saved_config:
+            self._restore(saved_config)
         
     def _build(self):
         self.vbox_layout = QVBoxLayout()
@@ -26,6 +28,7 @@ class ViewCOMConfig(QWidget):
         port_row.addWidget(l1)
         port_row.addWidget(self.COM_combobox)
         port_row.addWidget(port_refresh)
+        port_row.addStretch()
         self.vbox_layout.addLayout(port_row)
 
         bitrate_row = QHBoxLayout()
@@ -114,7 +117,7 @@ class ViewCOMConfig(QWidget):
 
         continue_button = QPushButton("Continue")
         continue_button.clicked.connect(self.COM_verify_inputs)
-        port_refresh.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        continue_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.vbox_layout.addWidget(continue_button)
 
         self.vbox_layout.addStretch()
@@ -126,6 +129,26 @@ class ViewCOMConfig(QWidget):
     def _refresh_ports(self):
         self.COM_combobox.clear()
         self.COM_combobox.addItems(self.viewmodel.COM_ports_list())
+
+    def _restore(self, saved_config):
+        self.COM_combobox.setCurrentText(saved_config["COM_port"])
+        self.bitrate_input.setText(saved_config["bitrate_value"])
+        if saved_config["bitrate_unit"] == "bit":
+            self.bitrate_bit.setChecked(True)
+        else:
+            self.bitrate_kb.setChecked(True)
+        if saved_config["PDU_bits"] == 7:
+            self.PDU_7_bits.setChecked(True)
+        else:
+            self.PDU_8_bits.setChecked(True)
+        if saved_config["PDU_stop"] == 1:
+            self.PDU_stop_bit_1.setChecked(True)
+        else:
+            self.PDU_stop_bit_2.setChecked(True)
+
+        self.PDU_parity_combobox.setCurrentText(saved_config["PDU_parity"])
+        self.data_flow_combobox.setCurrentText(saved_config["Data_flow_control"])
+        self.terminator_combobox.setCurrentText(saved_config["Terminator"])
         
     def COM_verify_inputs(self):
         COM_values = [
@@ -200,52 +223,46 @@ class ViewCOMcomm(QWidget):
         self._build()
 
     def _build(self):
-        print("meow")
-        # self.comm_frame = tk.Frame(
-        #     self.window, bg=self.bg_colour
-        # )
-        # self.comm_frame.pack(pady=5)
-        # self.trans_frame = tk.Frame(
-        #     self.comm_frame, bg=self.bg_colour
-        # )
-        # frame_seperator = ttk.Separator(
-        #     self.comm_frame, orient="vertical"
-        # )
-        # self.receive_frame = tk.Frame(
-        #     self.comm_frame, bg=self.bg_colour
-        # )
-        # self.trans_frame.pack(side="left",padx = 10)
-        # frame_seperator.pack(side="left", fill="y", padx=15)
-        # self.receive_frame.pack(side="left",padx=10)
+        self.vbox_layout = QVBoxLayout()
+        self.vbox_layout.setContentsMargins(30, 20, 30, 20)
+        self.vbox_layout.setSpacing(12)
 
-        # trans_label = tk.Label(
-        #     self.trans_frame, text="Transmission window in HEX", bg=self.bg_colour
-        # )
-        # self.trans_window = tk.Text (
-        #     self.trans_frame, width = 30, height=20
-        # )
-        # trans_label.pack(side="top")
-        # self.trans_window.pack(padx=10)
+        transmission_col = QVBoxLayout()
+        receive_col = QVBoxLayout()
+        comm_row = QHBoxLayout()
+        l1 = QLabel("Transmission window in HEX:")
+        l2 = QLabel("Receive window in HEX:")
+
+        self.trans_window = QTextEdit()
+        self.receive_window = QTextEdit()
+
+        transmission_col.addWidget(l1)
+        transmission_col.addWidget(self.trans_window)
+        receive_col.addWidget(l2)
+        receive_col.addWidget(self.receive_window)
+        comm_row.addLayout(transmission_col)
+        comm_row.addLayout(receive_col)
+        #comm_row.addStretch()
+        self.vbox_layout.addLayout(comm_row)
         
-        # receive_label = tk.Label(
-        #     self.receive_frame, text="Receive window in HEX", bg=self.bg_colour
-        # )
-        # self.receive_window = tk.Text(
-        #     self.receive_frame, width = 30, height=20, state="disabled"
-        # )
-        # receive_label.pack(side="top")
-        # self.receive_window.pack()
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("" \
+            "QLabel {" \
+            "   color: red;" \
+            "}" \
+            "")
+        self.vbox_layout.addWidget(self.error_label)
 
-        # self.buttons_frame = tk.Frame(
-        #     self.window, bg=self.bg_colour
-        # )
-        # self.buttons_frame.pack(pady=10)
-        # go_back_button = tk.Button(
-        #     self.buttons_frame, text="Go back", bg=self.bg_colour, command=lambda:self.switch_display(self.COM_config_screen)
-        # )
-        # go_back_button.pack(side="left",padx=30)
+        button_row = QHBoxLayout()
+        go_back_button = QPushButton("Go back")
+        go_back_button.clicked.connect(lambda:self.switch_display(new_display=ViewCOMConfig(viewmodel=self.viewmodel, 
+                                                                                            switch_display = self.switch_display,
+                                                                                            saved_config = self.viewmodel.model.COM_config)))
+        send_button = QPushButton("Send")
+        send_button.clicked.connect(lambda:self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip()))
+        button_row.addWidget(go_back_button)
+        button_row.addWidget(send_button)
+        self.vbox_layout.addLayout(button_row)
 
-        # send_button = tk.Button(
-        #     self.buttons_frame, text="Send", bg=self.bg_colour, command=lambda:self.viewmodel.send_COM_message(self.trans_window.get())
-        # )
-        # send_button.pack(side="right",padx=30)
+        self.vbox_layout.addStretch()
+        self.setLayout(self.vbox_layout)

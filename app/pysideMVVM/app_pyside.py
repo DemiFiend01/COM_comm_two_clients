@@ -18,7 +18,7 @@ class App:
         move_by = (screen[0]/2 - size[0]/2, screen[1]/2 - size[1]/2)
         self.window.move(move_by[0], move_by[1])
 
-        apply_stylesheet(self.window, theme="light_lightgreen.xml")
+        apply_stylesheet(self.window, theme="light_cyan_500.xml")
 
         icon_path = Path(__file__).parent / "icon.png"
         
