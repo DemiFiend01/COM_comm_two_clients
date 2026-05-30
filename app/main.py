@@ -1,14 +1,15 @@
 import pysideMVVM.view as v
+import pysideMVVM.app_pyside as app
 import pysideMVVM.viewmodel as vm
 import pysideMVVM.model as m
 import tkinter as tk
 
 def init():
     print("Start")
-    root = tk.Tk()
     model = m.Model()
     viewmodel = vm.PysideViewModel(model=model)
-    start = v.PysideView(window= root, viewmodel=viewmodel)
+    pyside_app = app.App(viewmodel=viewmodel)
+    pyside_app.run()
  
 #setup manually or read from given file
 
