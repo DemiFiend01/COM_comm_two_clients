@@ -10,8 +10,6 @@ def init():
     viewmodel = vm.PysideViewModel(model=model)
     pyside_app = app.App(viewmodel=viewmodel)
     pyside_app.run()
- 
-#setup manually or read from given file
 
 if __name__ == "__main__":
     init()

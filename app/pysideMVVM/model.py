@@ -1,21 +1,17 @@
 import serial
 import serial.tools.list_ports
+import time
+import re
 
-# COM_values = [
-#             ["COM_port"],
-#             ["bitrate_value"],
-#             ["bitrate_unit"],
-#             ["PDU_bits"],
-#             ["PDU_stop"],
-#             ["PDU_parity"],
-#             ["Data_flow_control"],
-#             ["Terminator"]
-#         ]
 class Model:
     def __init__(self):
         self.ports = []
         self.COM_config = dict
         self.serial_port = serial.Serial()
+        self.terminators_list = {"None": b"", "CR": b"\r", "LR": b"\n", "CR-LF": b"\r\n"}
+        self.terminator = b""
+        self.ping_repeat = 5
+        self.ping_count = self.ping_repeat
 
     def COM_ports_find(self):
         found = []
@@ -24,6 +20,8 @@ class Model:
         return self.ports
     
     def set_COM_config(self, COM_config):
+        if self.serial_port.is_open:
+            self.serial_port.close()
         self.COM_config = COM_config      
         self.serial_port.port = self.COM_config["COM_port"]
         self.serial_port.baudrate = int(self.COM_config["bitrate_value"])
@@ -49,13 +47,51 @@ class Model:
                 self.serial_port.rtscts = True
             case "XON/XOFF protocol":
                 self.serial_port.xonxoff = True
-
+        self.terminator = self.terminators_list.get(self.COM_config["Terminator"],
+                                                    self.COM_config["Terminator"].encode())
+        self.serial_port.timeout = 1
+        self.serial_port.write_timeout = 1
         print(self.serial_port)
+        self.serial_port.open()
     
     def get_COM_config(self):
         return self.COM_config
 
-    def send_COM_message(self, text):
-
+    def send_COM_message(self, text: str):
         print(text)
-        self.serial_port.write(text.encode() + "cd")
+        check_text = text.lower()
+        if check_text == "ping":
+            print(time.time_ns())
+            text = "ping"+str(time.time_ns())
+        self.serial_port.write(text.encode() + self.terminator)
+
+        """how ping works
+
+        sender sends:
+        ping
+        this gets changed to:
+        pingMM:SS:
+        """
+ 
+    def read_COM_message(self):
+        data = self.serial_port.read_until(self.terminator)
+        if not data:
+            pass
+            #print("none")
+        data = data.strip()
+        if data.startswith(b"ping"):
+            matches = re.findall(r'\d{15,19}', data.decode('utf-8', errors='replace'))
+            count = len(matches)
+            if count == 1:
+                # Someone send us the ping
+                self.send_COM_message(data.decode('utf-8', errors='replace') + str(time.time_ns()))
+                return
+            elif count == 2:
+                values = [int(m) for m in matches]
+                return f"PING {(values[1] - values[0])//1000000} ms"
+
+        print(repr(data))
+        return data
+    
+    def close_port(self):
+        self.serial_port.close()

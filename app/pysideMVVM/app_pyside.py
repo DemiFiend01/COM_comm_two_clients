@@ -21,11 +21,16 @@ class App:
         apply_stylesheet(self.window, theme="light_cyan_500.xml")
 
         icon_path = Path(__file__).parent / "icon.png"
-        
         my_icon = QIcon()
         my_icon.addFile(str(icon_path))
         self.window.setWindowIcon(my_icon)
         self.window.show()
+        self.qt_app.aboutToQuit.connect(self._cleanup)
 
     def run(self):
         self.qt_app.exec()
+
+    def _cleanup(self):
+        self.window.viewmodel.serial_worker_thread.stop()
+        self.window.viewmodel.receive_thread.quit()
+        self.window.viewmodel.receive_thread.wait()

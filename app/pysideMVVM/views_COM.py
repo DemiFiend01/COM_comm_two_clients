@@ -235,6 +235,8 @@ class ViewCOMcomm(QWidget):
 
         self.trans_window = QTextEdit()
         self.receive_window = QTextEdit()
+        self.receive_window.setReadOnly(True)
+        self.viewmodel.message_received.connect(self.receive_window.append)
 
         transmission_col.addWidget(l1)
         transmission_col.addWidget(self.trans_window)
@@ -255,14 +257,23 @@ class ViewCOMcomm(QWidget):
 
         button_row = QHBoxLayout()
         go_back_button = QPushButton("Go back")
-        go_back_button.clicked.connect(lambda:self.switch_display(new_display=ViewCOMConfig(viewmodel=self.viewmodel, 
-                                                                                            switch_display = self.switch_display,
-                                                                                            saved_config = self.viewmodel.model.COM_config)))
+        go_back_button.clicked.connect(lambda: self.go_back())
         send_button = QPushButton("Send")
         send_button.clicked.connect(lambda:self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip()))
+        clear_button = QPushButton("Clear")
+        clear_button.clicked.connect(lambda:self.receive_window.clear())
         button_row.addWidget(go_back_button)
         button_row.addWidget(send_button)
+        button_row.addWidget(clear_button)
         self.vbox_layout.addLayout(button_row)
 
         self.vbox_layout.addStretch()
         self.setLayout(self.vbox_layout)
+
+    def go_back(self):
+        self.viewmodel.model.close_port()
+        self.switch_display(new_display=ViewCOMConfig(
+            viewmodel=self.viewmodel,
+            switch_display=self.switch_display,
+            saved_config=self.viewmodel.model.COM_config
+        ))
