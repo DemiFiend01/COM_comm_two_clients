@@ -18,6 +18,9 @@ class ViewCOMConfig(QWidget):
     def _build(self):
         self.vbox_layout = QVBoxLayout()
 
+        l0 = QLabel("Properties (Default for MODBUS):")
+        self.vbox_layout.addWidget(l0)
+
         port_row = QHBoxLayout()
         l1 = QLabel("COM port:")
         self.COM_combobox = QComboBox()
@@ -34,7 +37,7 @@ class ViewCOMConfig(QWidget):
         bitrate_row = QHBoxLayout()
         l2 = QLabel("Bitrate (from 150 bits/s to 115 kb/s):")
         self.bitrate_input = QLineEdit()
-        self.bitrate_input.setText("115")
+        self.bitrate_input.setText("96")
         self.bitrate_bit = QRadioButton("bit/s")
         self.bitrate_kb = QRadioButton("kb/s")
         self.bitrate_kb.setChecked(True)
@@ -53,8 +56,8 @@ class ViewCOMConfig(QWidget):
         PDU_bits_row = QHBoxLayout()
         l4 = QLabel("Data bits:")
         self.PDU_7_bits = QRadioButton("7 bits data field")
-        self.PDU_7_bits.setChecked(True)
         self.PDU_8_bits = QRadioButton("8 bits data field")
+        self.PDU_8_bits.setChecked(True)
         self.PDU_bits_group = QButtonGroup()
         self.PDU_bits_group.addButton(self.PDU_7_bits, 7)
         self.PDU_bits_group.addButton(self.PDU_8_bits, 8)
@@ -115,10 +118,18 @@ class ViewCOMConfig(QWidget):
             "")
         self.vbox_layout.addWidget(self.error_label)
 
-        continue_button = QPushButton("Continue")
-        continue_button.clicked.connect(self.COM_verify_inputs)
-        continue_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        self.vbox_layout.addWidget(continue_button)
+        buttons_row = QHBoxLayout()
+        l9 = QLabel("Choose mode and continue:")
+        com_comm_button = QPushButton("COM comm")
+        com_comm_button.clicked.connect(lambda: self.COM_verify_inputs(modbus = False))
+        com_comm_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        modbus_button = QPushButton("Modbus")
+        modbus_button.clicked.connect(lambda: self.COM_verify_inputs(modbus= True))
+        modbus_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.vbox_layout.addWidget(l9)
+        buttons_row.addWidget(com_comm_button)
+        buttons_row.addWidget(modbus_button)
+        self.vbox_layout.addLayout(buttons_row)
 
         self.vbox_layout.addStretch()
         self.setLayout(self.vbox_layout)
@@ -150,7 +161,7 @@ class ViewCOMConfig(QWidget):
         self.data_flow_combobox.setCurrentText(saved_config["Data_flow_control"])
         self.terminator_combobox.setCurrentText(saved_config["Terminator"])
         
-    def COM_verify_inputs(self):
+    def COM_verify_inputs(self, modbus: bool):
         COM_values = [
             ["COM_port",self.COM_combobox.currentText().strip()],
             ["bitrate_value",self.bitrate_input.text().strip()],
@@ -213,7 +224,53 @@ class ViewCOMConfig(QWidget):
             return
 
         self.viewmodel.save_COM_config(COM_values_dict)
-        self.switch_display(new_display=ViewCOMcomm(viewmodel=self.viewmodel, switch_display = self.switch_display))
+        if modbus:
+            self.switch_display(new_display=ViewMODBUSconfig(viewmodel=self.viewmodel, switch_display = self.switch_display))
+        else:
+            self.switch_display(new_display=ViewCOMcomm(viewmodel=self.viewmodel, switch_display = self.switch_display))
+
+class ViewMODBUSconfig(QWidget):
+    def __init__(self, viewmodel: PysideViewModel, switch_display):
+        super().__init__()
+        self.viewmodel = viewmodel
+        self.switch_display = switch_display
+        self._build()
+
+    def _build(self):
+        print("meow")
+        self.vbox_layout = QVBoxLayout()
+
+        l0 = QLabel("MODBUS choice:")
+        self.vbox_layout.addWidget(l0)
+
+        modbus_choice_row = QHBoxLayout()
+        self.modbus_master = QRadioButton("Master")
+        self.modbus_master.setChecked(True)
+        self.modbus_slave = QRadioButton("Slave")
+        self.modbus_choice_group = QButtonGroup()
+        self.modbus_choice_group.addButton(self.modbus_master)
+        self.modbus_choice_group.addButton(self.modbus_slave)
+        modbus_choice_row.addWidget(self.modbus_master)
+        modbus_choice_row.addWidget(self.modbus_slave)
+        modbus_choice_row.addStretch()
+        self.vbox_layout.addLayout(modbus_choice_row)
+
+        buttons_row = QHBoxLayout()
+        continue_button = QPushButton("COM comm")
+        continue_button.clicked.connect(lambda: self.switch_display(new_display=ViewMODBUScomm(viewmodel = self.viewmodel, 
+                                                       switch_display = self.switch_display, 
+                                                       master = self.modbus_master.isChecked())))
+        continue_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        go_back_button = QPushButton("Go Back")
+        go_back_button.clicked.connect(lambda: self.switch_display(new_display=ViewCOMConfig(viewmodel = self.viewmodel, 
+                                                       switch_display = self.switch_display)))
+        go_back_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        buttons_row.addWidget(continue_button)
+        buttons_row.addWidget(go_back_button)
+        self.vbox_layout.addLayout(buttons_row)
+        self.vbox_layout.addStretch()
+
+        self.setLayout(self.vbox_layout)
 
 class ViewCOMcomm(QWidget):
     def __init__(self, viewmodel: PysideViewModel, switch_display):
@@ -277,3 +334,172 @@ class ViewCOMcomm(QWidget):
             switch_display=self.switch_display,
             saved_config=self.viewmodel.model.COM_config
         ))
+
+class ViewMODBUScomm(QWidget):
+    def __init__(self, viewmodel: PysideViewModel, switch_display, master: bool):
+        super().__init__()
+        self.viewmodel = viewmodel
+        self.switch_display = switch_display
+        self.master = master
+        self._build()
+
+    def _build(self):
+        self.vbox_layout = QVBoxLayout()
+        self.vbox_layout.setContentsMargins(30, 20, 30, 20)
+        self.vbox_layout.setSpacing(12)
+
+        transmission_col = QVBoxLayout()
+        receive_col = QVBoxLayout()
+        comm_row = QHBoxLayout()
+        l1 = QLabel("Transmission window in HEX:")
+        l2 = QLabel("Receive window in HEX:")
+
+        self.trans_window = QTextEdit()
+        self.receive_window = QTextEdit()
+        self.receive_window.setReadOnly(True)
+        self.viewmodel.message_received.connect(self.receive_window.append)
+
+        transmission_col.addWidget(l1)
+        transmission_col.addWidget(self.trans_window)
+        receive_col.addWidget(l2)
+        receive_col.addWidget(self.receive_window)
+        comm_row.addLayout(transmission_col)
+        comm_row.addLayout(receive_col)
+        #comm_row.addStretch()
+        self.vbox_layout.addLayout(comm_row)
+        
+        
+
+        if self.master:
+            master_settings_row = QHBoxLayout()
+
+            left_joined_row = QHBoxLayout()
+            leftside_col = QVBoxLayout()
+            rightside_col = QVBoxLayout()
+
+            slave_addr_col = QVBoxLayout()
+            l3 = QLabel("Slave (unit) address (set from 1 to 127): ")
+            l3.setWordWrap(True)
+            self.slave_addr = QLineEdit()
+            self.slave_addr.setText("1")
+            slave_addr_col.addWidget(l3)
+            slave_addr_col.addWidget(self.slave_addr)
+            slave_addr_col.addStretch()
+            leftside_col.addLayout(slave_addr_col)
+
+            transation_timeout_col = QVBoxLayout()
+            l4 = QLabel("Transaction (whole) timeout (0 - 10 s), resolution 100 ms")
+            l4.setWordWrap(True)
+            self.transaction_timeout = QLineEdit()
+            self.transaction_timeout.setText("5")
+            transation_timeout_col.addWidget(l4)
+            transation_timeout_col.addWidget(self.transaction_timeout)
+            leftside_col.addLayout(transation_timeout_col)
+            leftside_col.addStretch()
+            left_joined_row.addLayout(leftside_col,1)
+
+            retransmission_row = QVBoxLayout()
+            l5 = QLabel("Number of retransmissions (0 - 10), resolution 100 ms")
+            l5.setWordWrap(True)
+            self.slave_addr = QLineEdit()
+            self.slave_addr.setText("2")
+            retransmission_row.addWidget(l5)
+            retransmission_row.addWidget(self.slave_addr)
+            rightside_col.addLayout(retransmission_row)
+
+            character_timeout_row = QVBoxLayout()
+            l6 = QLabel("Between characters timeout (0 - 10 s), resolution 10 ms")
+            l6.setWordWrap(True)
+            self.character_timeout = QLineEdit()
+            self.character_timeout.setText("5")
+            character_timeout_row.addWidget(l6)
+            character_timeout_row.addWidget(self.character_timeout)
+            rightside_col.addLayout(character_timeout_row)
+            rightside_col.addStretch()
+            left_joined_row.addLayout(rightside_col,1)
+            master_settings_row.addLayout(left_joined_row,1)
+
+            right_joined_col = QVBoxLayout()
+
+            operation_joined_col = QVBoxLayout()
+            operation_row = QHBoxLayout()
+            l7 = QLabel("Operation modes:")
+            l7.setWordWrap(True)
+            self.command_1 = QRadioButton("Send from Master to Slave")
+            self.command_1.setChecked(True)
+            self.command_2 = QRadioButton("Read from Slave")
+            operation_modes_group = QButtonGroup()
+            operation_modes_group.addButton(self.command_1)
+            operation_modes_group.addButton(self.command_2)
+            operation_joined_col.addWidget(l7)
+            operation_row.addWidget(self.command_1)
+            operation_row.addWidget(self.command_2)
+            operation_row.addStretch()
+            operation_joined_col.addLayout(operation_row)
+            operation_joined_col.addStretch()
+            right_joined_col.addLayout(operation_joined_col)
+            right_joined_col.addStretch()
+
+            set_button = QPushButton("Set settings")
+            set_button.clicked.connect(self.check_master_settings)
+            right_joined_col.addWidget(set_button)
+            right_joined_col.addStretch()
+
+            master_settings_row.addLayout(right_joined_col,1)
+            master_settings_row.addStretch()
+            self.vbox_layout.addLayout(master_settings_row)  
+        else:
+            l3 = QLabel("Slave (unit) address: ")
+            l3.setWordWrap(True)
+            self.slave_addr = QLineEdit()
+            self.slave_addr.setText("1")
+            self.vbox_layout.addWidget(l3)
+            self.vbox_layout.addWidget(self.slave_addr)
+
+            l4 = QLabel("Between characters timeout (0 - 10 s), resolution 10 ms")
+            l4.setWordWrap(True)
+            self.character_timeout = QLineEdit()
+            self.character_timeout.setText("5")
+            self.vbox_layout.addWidget(l4)
+            self.vbox_layout.addWidget(self.character_timeout)
+
+            set_button = QPushButton("Set settings")
+            set_button.clicked.connect(self.check_slave_settings)
+            self.vbox_layout.addWidget(set_button)
+
+        self.error_label = QLabel("")
+        self.error_label.setStyleSheet("" \
+            "QLabel {" \
+            "   color: red;" \
+            "}" \
+            "")
+        self.vbox_layout.addWidget(self.error_label)
+
+        button_row = QHBoxLayout()
+        go_back_button = QPushButton("Go back")
+        go_back_button.clicked.connect(lambda: self.go_back())
+        send_button = QPushButton("Send")
+        send_button.clicked.connect(lambda:self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip()))
+        clear_button = QPushButton("Clear")
+        clear_button.clicked.connect(lambda:self.receive_window.clear())
+        button_row.addWidget(go_back_button)
+        button_row.addWidget(send_button)
+        button_row.addWidget(clear_button)
+        self.vbox_layout.addLayout(button_row)
+
+        self.vbox_layout.addStretch()
+        self.setLayout(self.vbox_layout)
+
+    def go_back(self):
+        self.viewmodel.model.close_port()
+        self.switch_display(new_display=ViewCOMConfig(
+            viewmodel=self.viewmodel,
+            switch_display=self.switch_display,
+            saved_config=self.viewmodel.model.COM_config
+        ))
+
+    def check_master_settings(self):
+        pass
+
+    def check_slave_settings(self):
+        pass
