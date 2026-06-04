@@ -11,7 +11,7 @@ class PysideViewModel(QObject):
         super().__init__()
         self.model = model
         self.receive_thread = QThread()
-        self.serial_worker_thread = SerialThread(model = self.model)
+        self.serial_worker_thread = SerialThread(model = self.model, modbus= False)
         self.serial_worker_thread.moveToThread(self.receive_thread)
 
         self.receive_thread.started.connect(self.serial_worker_thread.run)
@@ -21,12 +21,20 @@ class PysideViewModel(QObject):
     def COM_ports_list(self):
         return self.model.COM_ports_find()
 
-    def save_COM_config(self, COM_config: dict):
+    def save_COM_config(self, COM_config: dict, modbus: bool):
         self.model.set_COM_config(COM_config)
+        self.serial_worker_thread.set_MODBUS(modbus)
         self.receive_thread.start()
+
+    def save_MODBUS_settings(self, MODBUS_settings: dict):
+        #self.receive_thread.set_MODBUS(modbus= True)
+        self.model.set_MODBUS_settings(modbus_settings=MODBUS_settings)
     
     def get_COM_config(self):
         return self.model.get_COM_config()
 
     def send_COM_message(self, text):
         self.model.send_COM_message(text)
+
+    def send_MODBUS_message(self, text, modbus: bool):
+        self.model.send_MODBUS_message(text, modbus = modbus)

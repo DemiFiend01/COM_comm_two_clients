@@ -1,6 +1,6 @@
 from pysideMVVM.viewmodel import PysideViewModel
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QLabel, QPushButton,
+    QApplication, QMainWindow, QSpinBox, QWidget, QLabel, QPushButton,
     QLineEdit, QTextEdit, QRadioButton, QComboBox, QButtonGroup,
     QHBoxLayout, QVBoxLayout, QFrame, QFormLayout, QSizePolicy
 )
@@ -222,8 +222,8 @@ class ViewCOMConfig(QWidget):
         else:
             self.show_error("No terminator has been selected")
             return
-
-        self.viewmodel.save_COM_config(COM_values_dict)
+        
+        self.viewmodel.save_COM_config(COM_values_dict, modbus = modbus)
         if modbus:
             self.switch_display(new_display=ViewMODBUSconfig(viewmodel=self.viewmodel, switch_display = self.switch_display))
         else:
@@ -237,7 +237,6 @@ class ViewMODBUSconfig(QWidget):
         self._build()
 
     def _build(self):
-        print("meow")
         self.vbox_layout = QVBoxLayout()
 
         l0 = QLabel("MODBUS choice:")
@@ -256,17 +255,19 @@ class ViewMODBUSconfig(QWidget):
         self.vbox_layout.addLayout(modbus_choice_row)
 
         buttons_row = QHBoxLayout()
-        continue_button = QPushButton("COM comm")
-        continue_button.clicked.connect(lambda: self.switch_display(new_display=ViewMODBUScomm(viewmodel = self.viewmodel, 
-                                                       switch_display = self.switch_display, 
-                                                       master = self.modbus_master.isChecked())))
-        continue_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
         go_back_button = QPushButton("Go Back")
         go_back_button.clicked.connect(lambda: self.switch_display(new_display=ViewCOMConfig(viewmodel = self.viewmodel, 
                                                        switch_display = self.switch_display)))
         go_back_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        buttons_row.addWidget(continue_button)
+        continue_button = QPushButton("MODBUS continue")
+        continue_button.clicked.connect(lambda: self.switch_display(new_display=ViewMODBUScomm(viewmodel = self.viewmodel, 
+                                                       switch_display = self.switch_display, 
+                                                       master = self.modbus_master.isChecked())))
+        continue_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        
         buttons_row.addWidget(go_back_button)
+        buttons_row.addWidget(continue_button)
         self.vbox_layout.addLayout(buttons_row)
         self.vbox_layout.addStretch()
 
@@ -368,8 +369,6 @@ class ViewMODBUScomm(QWidget):
         #comm_row.addStretch()
         self.vbox_layout.addLayout(comm_row)
         
-        
-
         if self.master:
             master_settings_row = QHBoxLayout()
 
@@ -380,8 +379,11 @@ class ViewMODBUScomm(QWidget):
             slave_addr_col = QVBoxLayout()
             l3 = QLabel("Slave (unit) address (set from 1 to 127): ")
             l3.setWordWrap(True)
-            self.slave_addr = QLineEdit()
-            self.slave_addr.setText("1")
+            self.slave_addr = QSpinBox()
+            self.slave_addr.setMinimum(1)
+            self.slave_addr.setMaximum(247)
+            self.slave_addr.setSingleStep(1)
+            self.slave_addr.setValue(1)
             slave_addr_col.addWidget(l3)
             slave_addr_col.addWidget(self.slave_addr)
             slave_addr_col.addStretch()
@@ -390,8 +392,12 @@ class ViewMODBUScomm(QWidget):
             transation_timeout_col = QVBoxLayout()
             l4 = QLabel("Transaction (whole) timeout (0 - 10 s), resolution 100 ms")
             l4.setWordWrap(True)
-            self.transaction_timeout = QLineEdit()
-            self.transaction_timeout.setText("5")
+            self.transaction_timeout = QSpinBox()
+            self.transaction_timeout.setMinimum(0)
+            self.transaction_timeout.setMaximum(10000)
+            self.transaction_timeout.setSingleStep(100)
+            self.transaction_timeout.setSuffix(" ms")
+            self.transaction_timeout.setValue(10000)
             transation_timeout_col.addWidget(l4)
             transation_timeout_col.addWidget(self.transaction_timeout)
             leftside_col.addLayout(transation_timeout_col)
@@ -399,19 +405,26 @@ class ViewMODBUScomm(QWidget):
             left_joined_row.addLayout(leftside_col,1)
 
             retransmission_row = QVBoxLayout()
-            l5 = QLabel("Number of retransmissions (0 - 10), resolution 100 ms")
+            l5 = QLabel("Number of retransmissions (0 - 5)")
             l5.setWordWrap(True)
-            self.slave_addr = QLineEdit()
-            self.slave_addr.setText("2")
+            self.retrans_number = QSpinBox()
+            self.retrans_number.setMinimum(0)
+            self.retrans_number.setMaximum(5)
+            self.retrans_number.setSingleStep(1)
+            self.retrans_number.setValue(1)
             retransmission_row.addWidget(l5)
-            retransmission_row.addWidget(self.slave_addr)
+            retransmission_row.addWidget(self.retrans_number)
             rightside_col.addLayout(retransmission_row)
 
             character_timeout_row = QVBoxLayout()
-            l6 = QLabel("Between characters timeout (0 - 10 s), resolution 10 ms")
+            l6 = QLabel("Between characters timeout (0 or 1 s), resolution 10 ms")
             l6.setWordWrap(True)
-            self.character_timeout = QLineEdit()
-            self.character_timeout.setText("5")
+            self.character_timeout = QSpinBox()
+            self.character_timeout.setMinimum(0)
+            self.character_timeout.setMaximum(1000)
+            self.character_timeout.setSingleStep(10)
+            self.character_timeout.setSuffix(" ms")
+            self.character_timeout.setValue(1000)
             character_timeout_row.addWidget(l6)
             character_timeout_row.addWidget(self.character_timeout)
             rightside_col.addLayout(character_timeout_row)
@@ -448,24 +461,35 @@ class ViewMODBUScomm(QWidget):
             master_settings_row.addLayout(right_joined_col,1)
             master_settings_row.addStretch()
             self.vbox_layout.addLayout(master_settings_row)  
+            
+            self.check_master_settings()            
         else:
             l3 = QLabel("Slave (unit) address: ")
             l3.setWordWrap(True)
-            self.slave_addr = QLineEdit()
-            self.slave_addr.setText("1")
+            self.slave_addr = QSpinBox()
+            self.slave_addr.setMinimum(1)
+            self.slave_addr.setMaximum(247)
+            self.slave_addr.setSingleStep(1)
+            self.slave_addr.setValue(1)
             self.vbox_layout.addWidget(l3)
             self.vbox_layout.addWidget(self.slave_addr)
 
-            l4 = QLabel("Between characters timeout (0 - 10 s), resolution 10 ms")
+            l4 = QLabel("Between characters timeout (0 - 1 s), resolution 10 ms")
             l4.setWordWrap(True)
-            self.character_timeout = QLineEdit()
-            self.character_timeout.setText("5")
+            self.character_timeout = QSpinBox()
+            self.character_timeout.setMinimum(0)
+            self.character_timeout.setMaximum(1000)
+            self.character_timeout.setSingleStep(10)
+            self.character_timeout.setSuffix(" ms")
+            self.character_timeout.setValue(1000)
             self.vbox_layout.addWidget(l4)
             self.vbox_layout.addWidget(self.character_timeout)
 
             set_button = QPushButton("Set settings")
             set_button.clicked.connect(self.check_slave_settings)
             self.vbox_layout.addWidget(set_button)
+
+            self.check_slave_settings()
 
         self.error_label = QLabel("")
         self.error_label.setStyleSheet("" \
@@ -479,7 +503,7 @@ class ViewMODBUScomm(QWidget):
         go_back_button = QPushButton("Go back")
         go_back_button.clicked.connect(lambda: self.go_back())
         send_button = QPushButton("Send")
-        send_button.clicked.connect(lambda:self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip()))
+        send_button.clicked.connect(lambda:self.viewmodel.send_MODBUS_message(self.trans_window.toPlainText().strip(), master = self.master))
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(lambda:self.receive_window.clear())
         button_row.addWidget(go_back_button)
@@ -492,14 +516,51 @@ class ViewMODBUScomm(QWidget):
 
     def go_back(self):
         self.viewmodel.model.close_port()
-        self.switch_display(new_display=ViewCOMConfig(
+        self.switch_display(new_display=ViewCOMConfig( #on purpose, too much to save
             viewmodel=self.viewmodel,
             switch_display=self.switch_display,
             saved_config=self.viewmodel.model.COM_config
         ))
 
     def check_master_settings(self):
-        pass
+        master_settings = [
+            ["Master", True],
+            ["Slave_address",self.slave_addr.value()], # 1 to 247
+            ["Transmission_timeout",self.transaction_timeout.value()], # 1 to 10 s resolution 100ms
+            ["Number_of_retransmissions", self.retrans_number.value()], # 0 to 5
+            ["Character_timeout", self.character_timeout.value()], # 0 to 1 s resolution 10ms
+            ["Master_To_Slave", True if self.command_1.isChecked() else False]
+        ]
+        master_settings_dict = dict(master_settings)
+        if not master_settings_dict["Slave_address"]:
+            self.show_error("No slave address has been selected")
+            return
+        if not master_settings_dict["Transmission_timeout"]:
+            self.show_error("No transmission timeout has been selected")
+            return
+        if not master_settings_dict["Number_of_retransmissions"]:
+            self.show_error("No number of retransmissions has been selected")
+            return
+        if not master_settings_dict["Character_timeout"]:
+            self.show_error("No character timeout has been selected")
+            return
+        if master_settings_dict["Master_To_Slave"] is None:
+            self.show_error("No operation mode has been selected")
+            return
+        
+        self.viewmodel.save_MODBUS_settings(master_settings_dict)
 
     def check_slave_settings(self):
-        pass
+        slave_settings = [
+            ["Master", False],
+            ["Slave_address",self.slave_addr.value()], # 1 to 247
+            ["Character_timeout", self.character_timeout.value()] # 0 to 1 s resolution 10ms
+        ]
+        slave_settings_dict = dict(slave_settings)
+        if not slave_settings_dict["Slave_address"]:
+            self.show_error("No slave address has been selected")
+            return
+        if not slave_settings_dict["Character_timeout"]:
+            self.show_error("No character timeout has been selected")
+            return
+        self.viewmodel.save_MODBUS_settings(MODBUS_settings=slave_settings_dict)

@@ -3,7 +3,7 @@
 Tkinter GUI.
 
 ## To-Do:
-- [ ] Read all materials
+- [x] Read all materials
 - [x] Plan out architecture
 - [x] Buy the cables: 2 USB/RS-232 converters + null modem cable (RS-232, 1-2 m)
 - [x] Start the architecture skeleton
@@ -13,14 +13,15 @@ Tkinter GUI.
     - [x] COM port setup for comm
     - [x] Save all values
     - [x] Check setup input
-    - [ ] Transmitting a string of characters
-    - [ ] Receiving a string of characters
+    - [x] Transmitting a string of characters
+    - [x] Receiving a string of characters
     - [ ] Performing a two stage transaction - optional
-    - [ ] PING + round trip delay
-    - [ ] At least text mode for transmission
+    - [x] PING + round trip delay
+    - [x] At least text mode for transmission
 - [ ] Task 2:
     - [ ] MODBUS Master
     - [ ] MODBUS Slave
     - [ ] Master -> Slave
     - [ ] Slave -> Master
     - [ ] Messages in Hex
+    - [ ] Save settings

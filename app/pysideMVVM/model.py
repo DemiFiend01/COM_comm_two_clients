@@ -7,7 +7,9 @@ class Model:
     def __init__(self):
         self.ports = []
         self.COM_config = dict
+        self.MODBUS_settings = dict
         self.serial_port = serial.Serial()
+        self.MODBUS_port = serial.Serial()
         self.terminators_list = {"None": b"", "CR": b"\r", "LR": b"\n", "CR-LF": b"\r\n"}
         self.terminator = b""
         self.ping_repeat = 5
@@ -22,6 +24,8 @@ class Model:
     def set_COM_config(self, COM_config):
         if self.serial_port.is_open:
             self.serial_port.close()
+        if self.MODBUS_port.is_open:
+            self.MODBUS_port.close()
         self.COM_config = COM_config      
         self.serial_port.port = self.COM_config["COM_port"]
         self.serial_port.baudrate = int(self.COM_config["bitrate_value"])
@@ -53,9 +57,16 @@ class Model:
         self.serial_port.write_timeout = 1
         print(self.serial_port)
         self.serial_port.open()
-    
+
     def get_COM_config(self):
         return self.COM_config
+    
+    def set_MODBUS_settings(self, modbus_settings: dict):
+        self.MODBUS_settings = modbus_settings
+        print(self.MODBUS_settings)
+
+    def get_MODBUS_settings(self):
+        return self.MODBUS_settings
 
     def send_COM_message(self, text: str):
         print(text)
@@ -63,6 +74,20 @@ class Model:
         if check_text == "ping":
             print(time.time_ns())
             text = "ping"+str(time.time_ns())
+        self.serial_port.write(text.encode() + self.terminator)
+
+        """how ping works
+
+        sender sends:
+        ping
+        this gets changed to:
+        pingMM:SS:
+        """
+
+    def send_MODBUS_message(self, text: str, master: bool):
+        print(text)
+        check_text = text.lower()
+        
         self.serial_port.write(text.encode() + self.terminator)
 
         """how ping works

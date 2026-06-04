@@ -9,7 +9,7 @@ class PysideView(QMainWindow):
     def __init__(self, viewmodel: PysideViewModel):
         super().__init__()
         self.setWindowTitle("CSI laboratory")
-        self.setGeometry(10,10,600,500)
+        self.setGeometry(10,10,800,500)
         self.viewmodel = viewmodel
         self.bg_colour="azure"
         self.switch_display(ViewCOMConfig(viewmodel=self.viewmodel, 
