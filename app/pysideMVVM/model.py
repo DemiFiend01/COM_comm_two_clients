@@ -86,7 +86,8 @@ class Model:
 
     def send_MODBUS_message(self, text: str, master: bool):
         print(text)
-        check_text = text.lower()
+        check_text = text.lower() #create a message with the MODBUS settings in mind
+        # add new functions for LRM or whatever, whether its a master or a slave and act accordingly
         
         self.serial_port.write(text.encode() + self.terminator)
 
@@ -117,6 +118,9 @@ class Model:
 
         print(repr(data))
         return data
+    
+    def read_MODBUS_message(self):
+        pass #keep in mind the modbus settings, whether its a master or a slave and act accordingly
     
     def close_port(self):
         self.serial_port.close()
