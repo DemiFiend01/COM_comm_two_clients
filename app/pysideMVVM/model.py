@@ -86,7 +86,9 @@ class Model:
         if check_text == "ping":
             print(time.time_ns())
             text = "ping"+str(time.time_ns())
-        self.serial_port.write(text.encode() + self.terminator)
+
+        text += self.terminator.decode()
+        self.serial_port.write(text.encode())
 
         """how ping works
 
@@ -97,7 +99,10 @@ class Model:
         """
  
     def read_COM_message(self):
+        #data = data.decode('utf-8', errors='replace')
+        #print()
         data = self.serial_port.read_until(self.terminator)
+        print(data)
         if not data:
             pass
             #print("none")
@@ -113,7 +118,7 @@ class Model:
                 values = [int(m) for m in matches]
                 return f"PING {(values[1] - values[0])//1000000} ms"
 
-        if data.endswith(self.terminator):
+        if self.terminator and data.endswith(self.terminator):
             data = data[:data.find(self.terminator)]
         print(repr(data))
         return data

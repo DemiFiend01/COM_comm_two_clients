@@ -22,7 +22,6 @@ class SerialThread(QObject):
                 if self.modbus:
                     data = self.model.read_MODBUS_message()
                 else:
-                    #print("not modbus")
                     data = self.model.read_COM_message()
                 if data:
                     if isinstance(data, bytes):
