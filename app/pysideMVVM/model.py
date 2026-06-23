@@ -111,7 +111,9 @@ class Model:
                 return
             elif count == 2:
                 values = [int(m) for m in matches]
-                return f"PING {(values[1] - values[0])//1000000} ms"
+                time_now = time.time_ns()
+                value_now = time_now - values[0] 
+                return f"PING {value_now//1000000} ms"
 
         if self.terminator and data.endswith(self.terminator):
             data = data[:data.find(self.terminator)]
