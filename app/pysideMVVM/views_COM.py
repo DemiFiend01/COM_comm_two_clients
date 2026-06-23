@@ -74,8 +74,8 @@ class ViewCOMConfig(QWidget):
         self.PDU_stop_bit_1.setChecked(True)
         self.PDU_stop_bit_2 = QRadioButton("2 stop bits")
         self.PDU_stop_bits_group = QButtonGroup()
-        self.PDU_stop_bits_group.addButton(self.PDU_stop_bit_1)
-        self.PDU_stop_bits_group.addButton(self.PDU_stop_bit_2)
+        self.PDU_stop_bits_group.addButton(self.PDU_stop_bit_1, 1)
+        self.PDU_stop_bits_group.addButton(self.PDU_stop_bit_2, 2)
         PDU_stop_bits_row.addWidget(l5)
         PDU_stop_bits_row.addWidget(self.PDU_stop_bit_1)
         PDU_stop_bits_row.addWidget(self.PDU_stop_bit_2)
@@ -202,6 +202,7 @@ class ViewCOMConfig(QWidget):
             self.show_error("No PDU bits chosen")
             return
         
+        print(COM_values_dict["PDU_stop"])
         if not COM_values_dict["PDU_stop"]:
             self.show_error("No stop bits chosen")
             return
@@ -329,6 +330,7 @@ class ViewCOMcomm(QWidget):
         self.setLayout(self.vbox_layout)
 
     def go_back(self):
+        self.viewmodel.stop_thread()
         self.viewmodel.model.close_port()
         self.switch_display(new_display=ViewCOMConfig(
             viewmodel=self.viewmodel,
@@ -377,10 +379,10 @@ class ViewMODBUScomm(QWidget):
             rightside_col = QVBoxLayout()
 
             slave_addr_col = QVBoxLayout()
-            l3 = QLabel("Slave (unit) address (set from 1 to 127): ")
+            l3 = QLabel("Slave (unit) address (set from 0 (BC) to 127): ")
             l3.setWordWrap(True)
             self.slave_addr = QSpinBox()
-            self.slave_addr.setMinimum(1)
+            self.slave_addr.setMinimum(0) # 0 For broadcast
             self.slave_addr.setMaximum(247)
             self.slave_addr.setSingleStep(1)
             self.slave_addr.setValue(1)
@@ -515,6 +517,7 @@ class ViewMODBUScomm(QWidget):
         self.setLayout(self.vbox_layout)
 
     def go_back(self):
+        self.viewmodel.stop_thread()
         self.viewmodel.model.close_port()
         self.switch_display(new_display=ViewCOMConfig( #on purpose, too much to save
             viewmodel=self.viewmodel,
@@ -522,17 +525,20 @@ class ViewMODBUScomm(QWidget):
             saved_config=self.viewmodel.model.COM_config
         ))
 
+    def show_error(self, text: str):
+        self.error_label.setText(text)
+
     def check_master_settings(self):
         master_settings = [
             ["Master", True],
-            ["Slave_address",self.slave_addr.value()], # 1 to 247
+            ["Slave_address",self.slave_addr.value()], # 0 to 247
             ["Transmission_timeout",self.transaction_timeout.value()], # 1 to 10 s resolution 100ms
             ["Number_of_retransmissions", self.retrans_number.value()], # 0 to 5
             ["Character_timeout", self.character_timeout.value()], # 0 to 1 s resolution 10ms
             ["Master_To_Slave", True if self.command_1.isChecked() else False]
         ]
         master_settings_dict = dict(master_settings)
-        if not master_settings_dict["Slave_address"]:
+        if master_settings_dict["Slave_address"] < 0 or master_settings_dict["Slave_address"] > 248:
             self.show_error("No slave address has been selected")
             return
         if not master_settings_dict["Transmission_timeout"]:

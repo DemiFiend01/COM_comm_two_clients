@@ -36,5 +36,10 @@ class PysideViewModel(QObject):
     def send_COM_message(self, text):
         self.model.send_COM_message(text)
 
-    def send_MODBUS_message(self, text, modbus: bool):
-        self.model.send_MODBUS_message(text, modbus = modbus)
+    def send_MODBUS_message(self, text, master: bool):
+        self.model.send_MODBUS_message(text, master=master)
+
+    def stop_thread(self):
+        self.serial_worker_thread.stop()
+        self.receive_thread.quit()
+        self.receive_thread.wait()

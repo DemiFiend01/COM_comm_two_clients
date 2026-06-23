@@ -16,18 +16,19 @@ class SerialThread(QObject):
         self.modbus = modbus
 
     def run(self):
+        self._running = True
         while self._running:
             try:
                 if self.modbus:
-                    time.sleep(0.001)
-                
+                    data = self.model.read_MODBUS_message()
                 else:
+                    #print("not modbus")
                     data = self.model.read_COM_message()
-                    if data:
-                        if isinstance(data, bytes):
-                            self.message_received.emit(data.decode('utf-8', errors='replace'))
-                        else:
-                            self.message_received.emit(data)
+                if data:
+                    if isinstance(data, bytes):
+                        self.message_received.emit(data.decode('utf-8', errors='replace'))
+                    else:
+                        self.message_received.emit(data)
             except Exception as e:
                 print(repr(e))
                 break

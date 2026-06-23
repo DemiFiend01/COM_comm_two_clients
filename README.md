@@ -20,9 +20,9 @@ Tkinter GUI.
     - [x] PING + round trip delay
     - [x] At least text mode for transmission
 - [ ] Task 2:
-    - [ ] MODBUS Master
-    - [ ] MODBUS Slave
-    - [ ] Master -> Slave
-    - [ ] Slave -> Master
+    - [x] MODBUS Master
+    - [x] MODBUS Slave
+    - [x] Master -> Slave
+    - [ ] Slave -> Master - FIX
     - [ ] Messages in Hex
     - [ ] Save settings
