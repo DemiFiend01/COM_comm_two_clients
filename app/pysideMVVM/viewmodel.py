@@ -18,6 +18,9 @@ class PysideViewModel(QObject):
         # self.serial_worker_thread.finished.connect(self.receive_thread.quit)
         self.serial_worker_thread.message_received.connect(self.message_received)
 
+    def set_bin_mode(self, bin: bool):
+        self.serial_worker_thread.set_bin_mode(bin)
+
     def COM_ports_list(self):
         return self.model.COM_ports_find()
 
@@ -43,3 +46,16 @@ class PysideViewModel(QObject):
         self.serial_worker_thread.stop()
         self.receive_thread.quit()
         self.receive_thread.wait()
+
+    def set_DTR(self, state: bool):
+        self.model.set_DTR(state)
+    def set_RTS(self, state: bool):
+        self.model.set_RTS(state)
+    def get_DTR(self):
+        return self.model.get_DTR()
+    def get_RTS(self):
+        return self.model.get_RTS()
+    def get_DSR(self):
+        return self.model.get_DSR()
+    def get_CTS(self):
+        return self.model.get_CTS()

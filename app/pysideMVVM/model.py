@@ -81,6 +81,17 @@ class Model:
         return self.MODBUS_settings
 
     def send_COM_message(self, text: str):
+
+        flow_control = self.COM_config.get("Data_flow_control")
+        
+        if flow_control == "RTS/CTS handshake" and not self.get_CTS():
+            print("Transmission blocked: get_CTS() returned False.")
+            raise IOError("Cannot send: CTS line is inactive.")
+            
+        elif flow_control == "DTR/DSR handshake" and not self.get_DSR():
+            print("Transmission blocked: get_DSR() returned False.")
+            raise IOError("Cannot send: DSR line is inactive.")
+        
         print(text)
         check_text = text.lower()
         if check_text == "ping":
@@ -95,13 +106,14 @@ class Model:
         this gets changed to:
         pingMM:SS:
         """
- 
-    def read_COM_message(self):
+        
+    def read_COM_message(self, bin: bool):
         data = self.serial_port.read_until(self.terminator)
         if not data:
             pass
             #print("none")
         data = data.strip()
+        
         if data.startswith(b"ping"):
             matches = re.findall(r'\d{15,19}', data.decode('utf-8', errors='replace'))
             count = len(matches)
@@ -114,7 +126,8 @@ class Model:
                 time_now = time.time_ns()
                 value_now = time_now - values[0] 
                 return f"PING {value_now//1000000} ms"
-
+        if bin:
+            data = self.read_binary(data)
         if self.terminator and data.endswith(self.terminator):
             data = data[:data.find(self.terminator)]
         print(repr(data))
@@ -263,3 +276,38 @@ class Model:
         if not broadcast:
             self.serial_port.write(self.build_MODBUS_exception(own_address, parsed["modbus_mode"]))
         return f"MODBUS: unknown command {parsed['modbus_mode']}, exception sent"
+
+    # Optional 
+    # Add binary switch only for outputted message
+    def read_binary(self, text: bytes):
+        hex_string = text.hex().upper()
+        return " ".join(hex_string[i:i+2] for i in range(0, len(hex_string), 2))
+    
+    def set_DTR(self, state: bool):
+        if self.serial_port.is_open:
+            self.serial_port.dtr = bool(state)
+
+    def get_DTR(self):
+        if self.serial_port.is_open:
+            return self.serial_port.dtr
+        return False
+ 
+    def set_RTS(self, state: bool):
+        if self.serial_port.is_open:
+            self.serial_port.rts = bool(state)
+ 
+    def get_RTS(self):
+        if self.serial_port.is_open:
+            return self.serial_port.rts
+        return False
+ 
+    def get_DSR(self):
+        if self.serial_port.is_open:
+            return self.serial_port.dsr
+        return False
+ 
+    def get_CTS(self):
+        if self.serial_port.is_open:
+            return self.serial_port.cts
+        return False
+

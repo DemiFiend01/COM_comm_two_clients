@@ -1,10 +1,10 @@
 from pysideMVVM.viewmodel import PysideViewModel
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QSpinBox, QWidget, QLabel, QPushButton,
+    QApplication, QCheckBox, QMainWindow, QSpinBox, QWidget, QLabel, QPushButton,
     QLineEdit, QTextEdit, QRadioButton, QComboBox, QButtonGroup,
     QHBoxLayout, QVBoxLayout, QFrame, QFormLayout, QSizePolicy
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QTimer, Qt
 
 class ViewCOMConfig(QWidget):
     def __init__(self, viewmodel: PysideViewModel, switch_display, saved_config = None):
@@ -289,8 +289,11 @@ class ViewCOMcomm(QWidget):
         transmission_col = QVBoxLayout()
         receive_col = QVBoxLayout()
         comm_row = QHBoxLayout()
-        l1 = QLabel("Transmission window in HEX:")
-        l2 = QLabel("Receive window in HEX:")
+        l1 = QLabel("Transmission window:")
+        l2 = QLabel("Receive window:")
+
+        
+
 
         self.trans_window = QTextEdit()
         self.receive_window = QTextEdit()
@@ -300,6 +303,7 @@ class ViewCOMcomm(QWidget):
         transmission_col.addWidget(l1)
         transmission_col.addWidget(self.trans_window)
         receive_col.addWidget(l2)
+        
         receive_col.addWidget(self.receive_window)
         comm_row.addLayout(transmission_col)
         comm_row.addLayout(receive_col)
@@ -313,12 +317,47 @@ class ViewCOMcomm(QWidget):
             "}" \
             "")
         self.vbox_layout.addWidget(self.error_label)
+        self.alphanumeric_button = QRadioButton("Alphanum")
+        self.alphanumeric_button.setChecked(True)
+        self.hex_button = QRadioButton("Hex")
+        self.text_mode_group = QButtonGroup()
+        self.text_mode_group.addButton(self.alphanumeric_button, False)
+        self.text_mode_group.addButton(self.hex_button, True)
+        self.vbox_layout.addWidget(self.alphanumeric_button)
+        self.vbox_layout.addWidget(self.hex_button)
+
+        modem_row = QHBoxLayout()
+        l_modem = QLabel("Modem control lines:")
+        self.dtr_checkbox = QCheckBox("DTR")
+        self.dtr_checkbox.blockSignals(True)
+        self.dtr_checkbox.setChecked(self.viewmodel.get_DTR())
+        self.dtr_checkbox.blockSignals(False)
+        self.dtr_checkbox.toggled.connect(self.viewmodel.set_DTR)
+        self.rts_checkbox = QCheckBox("RTS")
+        self.rts_checkbox.blockSignals(True)
+        self.rts_checkbox.setChecked(self.viewmodel.get_RTS())
+        self.rts_checkbox.blockSignals(False)
+        self.rts_checkbox.toggled.connect(self.viewmodel.set_RTS)
+        self.dsr_label = QLabel("DSR: ?")
+        self.cts_label = QLabel("CTS: ?")
+        modem_row.addWidget(l_modem)
+        modem_row.addWidget(self.dtr_checkbox)
+        modem_row.addWidget(self.rts_checkbox)
+        modem_row.addWidget(self.dsr_label)
+        modem_row.addWidget(self.cts_label)
+        modem_row.addStretch()
+        self.vbox_layout.addLayout(modem_row)
+ 
+        self.modem_status_timer = QTimer(self)
+        self.modem_status_timer.timeout.connect(self._update_modem_status)
+        self.modem_status_timer.start(500)
+
 
         button_row = QHBoxLayout()
         go_back_button = QPushButton("Go back")
         go_back_button.clicked.connect(lambda: self.go_back())
         send_button = QPushButton("Send")
-        send_button.clicked.connect(lambda:self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip()))
+        send_button.clicked.connect(lambda: self.handle_send())
         clear_button = QPushButton("Clear")
         clear_button.clicked.connect(lambda:self.receive_window.clear())
         button_row.addWidget(go_back_button)
@@ -337,6 +376,28 @@ class ViewCOMcomm(QWidget):
             switch_display=self.switch_display,
             saved_config=self.viewmodel.model.COM_config
         ))
+    def _update_modem_status(self):
+        """Periodically queries the ViewModel for DSR and CTS hardware pin states."""
+        # Fetch states (returns True or False)
+        dsr_active = self.viewmodel.get_DSR()
+        cts_active = self.viewmodel.get_CTS()
+        
+        # Update the labels dynamically
+        self.dsr_label.setText(f"DSR: {'ACTIVE' if dsr_active else 'INACTIVE'}")
+        self.cts_label.setText(f"CTS: {'ACTIVE' if cts_active else 'INACTIVE'}")
+
+    def handle_send(self):
+        is_hex = self.hex_button.isChecked()
+        self.viewmodel.set_bin_mode(is_hex)
+        self.show_error("")
+        
+        try:
+            self.viewmodel.send_COM_message(self.trans_window.toPlainText().strip())
+        except IOError as e:
+            self.show_error(str(e))
+
+    def show_error(self, text: str):
+        self.error_label.setText(text)
 
 class ViewMODBUScomm(QWidget):
     def __init__(self, viewmodel: PysideViewModel, switch_display, master: bool):
